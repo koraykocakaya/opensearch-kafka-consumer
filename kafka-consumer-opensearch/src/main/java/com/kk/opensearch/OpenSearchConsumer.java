@@ -86,6 +86,9 @@ public class OpenSearchConsumer {
 		consumerProperties.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
 		consumerProperties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupId);
 		consumerProperties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+		consumerProperties.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+		consumerProperties.setProperty(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "10000");
+		consumerProperties.setProperty(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, "6000");
 		
 		KafkaConsumer<String, String> consumer = new KafkaConsumer<String, String>(consumerProperties);
 		
@@ -110,7 +113,7 @@ public class OpenSearchConsumer {
 			}
 
 			consumer.subscribe(Collections.singleton(topic));
-			
+
 			while(true) {
 				ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(timeout_poll));
 				log.info(records.count() + " record(s) received");
@@ -119,13 +122,13 @@ public class OpenSearchConsumer {
 						IndexRequest requestForInsert = new IndexRequest(indexName)
 								.source(record.value(), XContentType.JSON);
 						IndexResponse resp = openSearchClient.index(requestForInsert, RequestOptions.DEFAULT);
-						log.info(resp.getId());
+//						log.info(resp.getId());
 					} catch (Exception e) {
 						log.error("Exception thrown", e);
 					}
-					
-
 				}
+				consumer.commitSync();
+				log.info("Offsets committed");
 			}
 			
 
